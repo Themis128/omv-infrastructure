@@ -1,0 +1,82 @@
+# authentik blueprint — cloudless.gr platform (applied via `ak apply_blueprint` / API)
+# Reference: https://docs.goauthentik.io/customize/blueprints/
+version: 1
+metadata:
+  name: cloudless-platform
+  labels:
+    managed-by: omv-infrastructure
+
+entries:
+  # --- Groups -------------------------------------------------------
+  - model: authentik_core.group
+    id: group-cloudless-admins
+    attrs:
+      name: cloudless-admins
+      is_superuser: true
+  - model: authentik_core.group
+    id: group-cloudless-users
+    attrs: {name: cloudless-users}
+  - model: authentik_core.group
+    id: group-social-users
+    attrs: {name: social-users}
+  - model: authentik_core.group
+    id: group-nextcloud-users
+    attrs: {name: nextcloud-users}
+
+  # --- Property mapping: expose groups claim ------------------------
+  - model: authentik_providers_oauth2.scopemapping
+    id: scope-groups
+    attrs:
+      name: groups
+      scope_name: groups
+      expression: |
+        return {"groups": [g.name for g in user.ak_groups.all()]}
+
+  # --- SocialAuto OIDC provider (existing client social_client) -----
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider-social
+    attrs:
+      name: socialauto
+      client_type: confidential
+      client_id: social_client
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      property_mappings: [!KeyOf scope-groups]
+      redirect_uris:
+        - https://social.cloudless.gr/auth/callback
+        - http://localhost:8083/auth/callback
+
+  # --- cloudless.gr portal ------------------------------------------
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider-portal
+    attrs:
+      name: cloudless-portal
+      client_type: public
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      property_mappings: [!KeyOf scope-groups]
+      redirect_uris:
+        - https://cloudless.gr/api/auth/callback
+
+  # --- Nextcloud (user_oidc app) ------------------------------------
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider-nextcloud
+    attrs:
+      name: nextcloud
+      client_type: confidential
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      property_mappings: [!KeyOf scope-groups]
+      redirect_uris:
+        - https://cloud.cloudless.gr/apps/user_oidc/code
+
+  # --- Applications --------------------------------------------------
+  - model: authentik_core.application
+    attrs: {name: SocialAuto, slug: social_client, provider: !KeyOf provider-social, group: Work}
+  - model: authentik_core.application
+    attrs: {name: cloudless.gr Portal, slug: cloudless-portal, provider: !KeyOf provider-portal, group: Web}
+  - model: authentik_core.application
+    attrs: {name: Nextcloud, slug: nextcloud, provider: !KeyOf provider-nextcloud, group: Files}
+
+# TODO before apply:
+# - generate real client secrets (authentik API) -> secret store, never here
+# - confirm exact redirect URI paths per app (Auth.js, user_oidc, social-api)
+# - enrollment flow for cloudless-users once portal auth lands
+# - MFA policy binding: default-authentication-flow -> TOTP+WebAuthn for cloudless-admins
