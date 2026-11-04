@@ -10,6 +10,36 @@
 
 ## Target design
 
+
+## Target topology
+
+```mermaid
+flowchart TB
+    subgraph public[Public plane]
+        U[Users / browsers] -->|OIDC redirects| CF[Cloudflare edge]
+        CF --> TUN[cloudflared-omv]
+        TUN --> NP[NodePort 30910]
+    end
+    subgraph tailnet[Tailnet private plane]
+        ADM[Admin / agents] -->|/if/admin| TS[tailscale serve omv-ha]
+        OPS[authentik-ops scripts] -->|API + kubectl| TS
+    end
+    subgraph k3s[omv-ha k3s — ns: authentik]
+        NP --> SVC[authentik-server]
+        TS --> SVC
+        SVC --> PG[(postgres)]
+        SVC --> RD[(redis)]
+        SVC --> WK[authentik-worker]
+    end
+    SVC -->|OIDC| SA[SocialAuto]
+    SVC -->|OIDC| NC[Nextcloud omv AIO]
+    SVC -->|OIDC| PT[cloudless.gr portal]
+    SVC -->|OIDC| GR[Grafana]
+    OP[authentik-outpost · docker-desktop] -->|enrol via tailnet| SVC
+    SVC --> MT[/metrics → Prometheus]
+    SVC --> BK[pg_dump → NAS backup]
+```
+
 ### Placement (keep k3s — correct call)
 - Dedicated `authentik` namespace on omv-ha k3s: `authentik-server` (web+api),
   `authentik-worker` (bg tasks), postgres + redis in-cluster (CNPG/Bitnami or
