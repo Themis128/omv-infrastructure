@@ -2,8 +2,10 @@
 
 ## Current state (2026-11-04)
 
-- Server: k3s workload on omv-ha cluster, NodePort `192.168.1.128:30910`,
-  fronted by `cloudflared-omv` on omv → `https://auth.cloudless.gr`.
+- Server: k3s workload on the omv node (single-node cluster since 2026-08-08;
+  `omv-ha` is now a dedicated mail host, not a cluster peer), NodePort
+  `192.168.1.128:30910`, fronted by `cloudflared-omv` on omv →
+  `https://auth.cloudless.gr`.
 - Outpost: `authentik-outpost` on Docker Desktop (cu130-slim) proxying SocialAuto.
 - SocialAuto OIDC: issuer `https://auth.cloudless.gr/application/o`, client `social_client`.
 - Gaps: no IaC, no admin API token, MFA posture unknown, admin UI likely public.

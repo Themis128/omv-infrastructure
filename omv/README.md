@@ -1,5 +1,12 @@
 # omv-main (Pi 5) Node — Cluster Architecture
 
+> **Historical (pre-2026-08-08):** this document describes the former 2-node HA
+> failover cluster (keepalived VIP + omv-ha etcd peer). Since 2026-08-08 the
+> k3s cluster is **single-node** on `omv`; `omv-ha` was drained, removed, and
+> repurposed as a dedicated mail host. Kept for reference — do not follow the
+> failover/VIP procedures below as current ops. Current topology: see
+> `Themis128/OMV` README and `Themis128/cloudless.gr` CLAUDE.md.
+
 > The `omv-main` node is a Raspberry Pi 5 (8GB RAM, NVMe boot) running k3s for the cloudless.gr HA failover cluster.
 
 ---
