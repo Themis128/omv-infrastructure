@@ -23,10 +23,10 @@ flowchart TB
         TUN --> NP[NodePort 30910]
     end
     subgraph tailnet[Tailnet private plane]
-        ADM[Admin / agents] -->|/if/admin| TS[tailscale serve omv-ha]
+        ADM[Admin / agents] -->|/if/admin| TS[tailscale serve omv]
         OPS[authentik-ops scripts] -->|API + kubectl| TS
     end
-    subgraph k3s[omv-ha k3s — ns: authentik]
+    subgraph k3s[omv k3s (single-node) — ns: authentik]
         NP --> SVC[authentik-server]
         TS --> SVC
         SVC --> PG[(postgres)]
@@ -43,7 +43,7 @@ flowchart TB
 ```
 
 ### Placement (keep k3s — correct call)
-- Dedicated `authentik` namespace on omv-ha k3s: `authentik-server` (web+api),
+- Dedicated `authentik` namespace on omv k3s (single-node since 2026-08-08): `authentik-server` (web+api),
   `authentik-worker` (bg tasks), postgres + redis in-cluster (CNPG/Bitnami or
   the bundled chart deps). PVCs on longhorn/local-path — backup via the existing
   NAS job to `omv-infrastructure`-managed backup units.
